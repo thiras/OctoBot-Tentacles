@@ -1,0 +1,61 @@
+{
+    "config": {
+        "crypto-currencies": {
+            "Bitcoin": {
+                "enabled": true,
+                "pairs": [
+                    "BTC/USDT:USDT"
+                ]
+            },
+            "Ethereum": {
+                "enabled": true,
+                "pairs": [
+                    "ETH/USDT:USDT"
+                ]
+            },
+            "BNB": {
+                "enabled": true,
+                "pairs": [
+                    "BNB/USDT:USDT"
+                ]
+            }
+        },
+        "exchanges": {
+            "binance": {
+                "enabled": true,
+                "exchange-type": "future"
+            },
+            "bybit": {
+                "enabled": true,
+                "exchange-type": "future"
+            }
+        },
+        "trader": {
+            "enabled": false,
+            "load-trade-history": false
+        },
+        "trader-simulator": {
+            "enabled": true,
+            "fees": {
+                "maker": 0.02,
+                "taker": 0.04
+            },
+            "starting-portfolio": {
+                "USDT": 10000
+            }
+        },
+        "trading": {
+            "reference-market": "USDT",
+            "risk": 0.3
+        }
+    },
+    "profile": {
+        "avatar": "default_profile.png",
+        "risk": 2,
+        "complexity": 3,
+        "description": "Funding Rate Arbitrage automatically exploits funding rate differences between cryptocurrency exchanges to generate profit through market-neutral strategies. This advanced profile requires multiple exchanges and focuses on perpetual futures markets.",
+        "id": "funding_rate_arbitrage",
+        "name": "Funding Rate Arbitrage",
+        "read_only": true
+    }
+}

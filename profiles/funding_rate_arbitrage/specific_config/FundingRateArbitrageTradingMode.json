@@ -1,0 +1,14 @@
+{
+    "position_size_percent": 8.0,
+    "max_total_exposure_percent": 25.0,
+    "min_arbitrage_spread_percent": 0.15,
+    "stop_loss_percent": 1.5,
+    "target_exchanges": [
+        "binance",
+        "bybit"
+    ],
+    "enable_hedge_orders": false,
+    "enable_long_positions": true,
+    "enable_short_positions": true,
+    "required_strategies": ["FundingRateArbitrageStrategyEvaluator"]
+}

@@ -1,0 +1,11 @@
+{
+  "position_size_percent": 10.0,
+  "max_total_exposure_percent": 30.0,
+  "min_arbitrage_spread_percent": 0.1,
+  "stop_loss_percent": 2.0,
+  "target_exchanges": [],
+  "enable_hedge_orders": false,
+  "enable_long_positions": true,
+  "enable_short_positions": true,
+  "required_strategies": ["FundingRateArbitrageStrategyEvaluator"]
+}

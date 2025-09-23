@@ -1,0 +1,8 @@
+{
+    "rate_difference_threshold_percent": 1,
+    "min_rate_absolute_percent": 0.5,
+    "max_exchanges_to_compare": 5,
+    "evaluation_interval_minutes": 1,
+    "min_liquidity_threshold": 100000,
+    "time_frame": "1m"
+}
