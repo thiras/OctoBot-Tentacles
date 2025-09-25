@@ -5,14 +5,14 @@
                 "enabled": true,
                 "pairs": [
                     "BTC/USDT:USDT",
-                    "BTC/USD:USD"
+                    "BTC/USDC:USDC"
                 ]
             },
             "Ethereum": {
                 "enabled": true,
                 "pairs": [
                     "ETH/USDT:USDT",
-                    "ETH/USD:USD"
+                    "ETH/USDC:USDC"
                 ]
             }
         },
