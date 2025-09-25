@@ -104,26 +104,6 @@ class Hyperliquid(exchanges.RestExchange):
                     f"Hyperliquid {len(futures_pairs)} futures trading pairs: {sorted(futures_pairs)}"
                 )
 
-    async def get_position(self, symbol, **kwargs):
-        # Ensure 'user' is in params or wallet_address is set
-        params = kwargs.get('params', {})
-        
-        # Get wallet address from connector credentials (API key is used as wallet address)
-        wallet_address = None
-        if hasattr(self.connector, 'credentials') and self.connector.credentials:
-            # The wallet_address was set in the _keys_adapter method
-            wallet_address = self.connector.credentials.wallet_address
-        
-        if 'user' not in params and wallet_address:
-            params['user'] = wallet_address
-            kwargs['params'] = params
-        elif 'user' not in params and not wallet_address:
-            # Log warning and return empty position dict instead of None to prevent crashes
-            self.logger.warning(f"Hyperliquid fetchPositions() requires a user parameter inside 'params' or the wallet address set. Skipping position fetch for {symbol}")
-            return {}
-        
-        return await super().get_position(symbol, **kwargs)
-
     @classmethod
     def get_name(cls):
         return "hyperliquid"
@@ -131,62 +111,8 @@ class Hyperliquid(exchanges.RestExchange):
     def get_adapter_class(self):
         return HyperLiquidCCXTAdapter
 
-    async def get_symbol_markets(self, symbols, reload=False, **kwargs):
-        """Override to ensure both spot and futures markets are loaded"""
-        return await super().get_symbol_markets(symbols, reload=reload, **kwargs)
-
-    def _get_supported_symbols(self, symbols_list):
-        """Override to check for symbol transformation matches"""
-        supported_symbols = []
-        
-        for symbol in symbols_list:
-            # Check if the symbol exists as-is
-            if symbol in self.symbols:
-                supported_symbols.append(symbol)
-        
-        return supported_symbols
-
-    async def get_positions(self, symbols=None, **kwargs):
-        """Override to ensure proper position fetching for futures"""
-        # Only futures have positions, spot trading doesn't
-        if not self.exchange_manager.is_future:
-            return []
-        
-        # Ensure 'user' is in params for Hyperliquid
-        params = kwargs.get('params', {})
-        
-        # Get wallet address from connector credentials (API key is used as wallet address)
-        if 'user' not in params and hasattr(self.connector, 'credentials') and self.connector.credentials:
-            wallet_address = self.connector.credentials.wallet_address
-            if wallet_address:
-                params['user'] = wallet_address
-                kwargs['params'] = params
-            else:
-                self.logger.warning("Hyperliquid fetchPositions() requires a user parameter but wallet address not found")
-                return []
-        elif 'user' not in params:
-            self.logger.warning("Hyperliquid fetchPositions() requires a user parameter but no wallet address available")
-            return []
-        
-        try:
-            positions = await super().get_positions(symbols, **kwargs)
-            return positions if positions is not None else []
-        except Exception as e:
-            self.logger.warning(f"Error fetching positions from Hyperliquid: {e}")
-            return []
-
 
 class HyperLiquidCCXTAdapter(exchanges.CCXTAdapter):
-
-    def fix_order(self, raw, **kwargs):
-        """Fix order data"""
-        fixed = super().fix_order(raw, **kwargs)
-        return fixed
-
-    def fix_trades(self, raw, **kwargs):
-        """Fix trades data"""
-        fixed = super().fix_trades(raw, **kwargs)
-        return fixed
 
     def fix_ticker(self, raw, **kwargs):
         fixed = super().fix_ticker(raw, **kwargs)
