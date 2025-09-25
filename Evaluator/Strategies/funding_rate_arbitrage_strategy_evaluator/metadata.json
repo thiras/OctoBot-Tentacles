@@ -1,6 +1,0 @@
-{
-  "version": "1.0.0",
-  "origin_package": "OctoBot-Custom-Tentacles",
-  "tentacles": ["FundingRateArbitrageStrategyEvaluator"],
-  "tentacles-requirements": ["FundingRateArbitrageEvaluator"]
-}

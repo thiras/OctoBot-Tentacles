@@ -1,8 +1,7 @@
 {
     "tentacle_activation": {
         "Evaluator": {
-            "FundingRateArbitrageEvaluator": true,
-            "FundingRateArbitrageStrategyEvaluator": true
+            "FundingRateArbitrageEvaluator": true
         },
         "Trading": {
             "FundingRateArbitrageTradingMode": true

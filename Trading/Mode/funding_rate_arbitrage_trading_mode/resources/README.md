@@ -15,7 +15,7 @@ The Funding Rate Arbitrage Trading Mode is designed to execute market-neutral ar
 ### Key Features
 
 1. **Intelligent Signal Processing**
-   - Integrates with FundingRateArbitrageStrategyEvaluator
+   - Integrates with FundingRateArbitrageEvaluator (RealTime)
    - Processes real-time funding rate data
    - Calculates optimal entry/exit points
 
@@ -55,7 +55,7 @@ The Funding Rate Arbitrage Trading Mode is designed to execute market-neutral ar
 ## Prerequisites
 
 ### Required Components
-1. **FundingRateArbitrageStrategyEvaluator**: Must be active to provide arbitrage signals
+1. **FundingRateArbitrageEvaluator**: Must be active to provide arbitrage signals and strategy decisions
 2. **Multiple Exchanges**: At least 2 exchanges configured for arbitrage
 3. **Funding Rate Data**: Real-time funding rate feeds from exchanges
 4. **Sufficient Capital**: Minimum portfolio value for effective arbitrage
@@ -84,7 +84,7 @@ The Funding Rate Arbitrage Trading Mode is designed to execute market-neutral ar
 
 ### Setup Steps
 1. Configure multiple exchanges with API access
-2. Enable FundingRateArbitrageStrategyEvaluator
+2. Enable FundingRateArbitrageEvaluator
 3. Set appropriate position sizing based on portfolio
 4. Configure minimum arbitrage spreads above exchange fees
 5. Monitor initial trades to validate configuration
@@ -113,7 +113,7 @@ The trading mode tracks several key metrics:
 
 ## Integration Notes
 
-This trading mode is specifically designed to work with the FundingRateArbitrageStrategyEvaluator and requires:
+This trading mode is specifically designed to work with the FundingRateArbitrageEvaluator (enhanced RealTime evaluator) and requires:
 - Real-time funding rate data processing
 - Multi-exchange order execution capabilities
 - Market-neutral position management

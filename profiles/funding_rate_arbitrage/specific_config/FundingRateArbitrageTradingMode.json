@@ -10,5 +10,6 @@
     "enable_hedge_orders": false,
     "enable_long_positions": true,
     "enable_short_positions": true,
-    "required_strategies": ["FundingRateArbitrageStrategyEvaluator"]
+    "required_evaluators": ["FundingRateArbitrageEvaluator"],
+    "required_strategies": []
 }

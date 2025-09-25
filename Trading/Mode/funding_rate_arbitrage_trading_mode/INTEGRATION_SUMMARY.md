@@ -30,7 +30,7 @@ This document summarizes the complete implementation of the Funding Rate Arbitra
 2. **FundingRateArbitrageTradingModeProducer**
    - Processes strategy evaluator signals
    - Manages trading state transitions
-   - Integrates with `FundingRateArbitrageStrategyEvaluator`
+   - Integrates with `FundingRateArbitrageEvaluator` (enhanced RealTime)
 
 3. **FundingRateArbitrageTradingModeConsumer**
    - Executes arbitrage orders across exchanges
@@ -40,7 +40,7 @@ This document summarizes the complete implementation of the Funding Rate Arbitra
 ## Integration Points
 
 ### Strategy Evaluator Integration
-- Connects to `FundingRateArbitrageStrategyEvaluator`
+- Connects to `FundingRateArbitrageEvaluator` (RealTime)
 - Processes strategy evaluations from the matrix
 - Translates arbitrage signals into trading actions
 
@@ -102,7 +102,7 @@ This document summarizes the complete implementation of the Funding Rate Arbitra
 
 1. **Setup**
    - Configure multiple exchanges
-   - Enable FundingRateArbitrageStrategyEvaluator
+   - Enable FundingRateArbitrageEvaluator
    - Set trading mode parameters
 
 2. **Operation**
@@ -137,7 +137,7 @@ funding_rate_arbitrage_trading_mode/
 ### For Users
 1. Add the trading mode to your OctoBot configuration
 2. Configure exchange connections for arbitrage
-3. Set up the FundingRateArbitrageStrategyEvaluator
+3. Set up the FundingRateArbitrageEvaluator
 4. Adjust parameters based on risk tolerance
 5. Monitor initial trades to validate setup
 

@@ -4,19 +4,15 @@
             "Bitcoin": {
                 "enabled": true,
                 "pairs": [
-                    "BTC/USDT:USDT"
+                    "BTC/USDT:USDT",
+                    "BTC/USD:USD"
                 ]
             },
             "Ethereum": {
                 "enabled": true,
                 "pairs": [
-                    "ETH/USDT:USDT"
-                ]
-            },
-            "BNB": {
-                "enabled": true,
-                "pairs": [
-                    "BNB/USDT:USDT"
+                    "ETH/USDT:USDT",
+                    "ETH/USD:USD"
                 ]
             }
         },
@@ -26,6 +22,10 @@
                 "exchange-type": "future"
             },
             "bybit": {
+                "enabled": true,
+                "exchange-type": "future"
+            },
+            "hyperliquid": {
                 "enabled": true,
                 "exchange-type": "future"
             }

@@ -42,11 +42,11 @@ class FundingRateArbitrageTradingMode(trading_modes.AbstractTradingMode):
     - Configurable position sizing
     - Automatic hedge management
     
-    Integrates with: FundingRateArbitrageStrategyEvaluator
+    Integrates with: FundingRateArbitrageEvaluator (RealTime)
     """
     
-    # Strategy evaluator integration
-    STRATEGY_EVALUATOR_CLASS_NAME = "FundingRateArbitrageStrategyEvaluator"
+    # RealTime evaluator integration (replaces strategy evaluator)
+    REALTIME_EVALUATOR_CLASS_NAME = "FundingRateArbitrageEvaluator"
     
     def __init__(self, config, exchange_manager):
         super().__init__(config, exchange_manager)
@@ -238,7 +238,7 @@ class FundingRateArbitrageTradingMode(trading_modes.AbstractTradingMode):
 class FundingRateArbitrageTradingModeProducer(trading_modes.AbstractTradingModeProducer):
     """
     Producer for funding rate arbitrage trading mode
-    Processes strategy evaluator signals and manages trading state
+    Processes RealTime evaluator signals and manages trading state
     """
     
     def __init__(self, channel, config, trading_mode, exchange_manager):
@@ -291,38 +291,62 @@ class FundingRateArbitrageTradingModeProducer(trading_modes.AbstractTradingModeP
             self.state = trading_enums.EvaluatorStates.NEUTRAL
 
     async def _get_strategy_evaluation(self, matrix_id: str, cryptocurrency: str, symbol: str, time_frame) -> float:
-        """Get evaluation from funding rate arbitrage strategy evaluator"""
+        """Get evaluation from funding rate arbitrage RealTime evaluator"""
         try:
-            # Get strategy evaluation from the evaluator matrix
+            # Get RealTime evaluation from the evaluator matrix
             import octobot_evaluators.matrix as matrix
             import octobot_evaluators.enums as evaluators_enums
             
-            # Look for the funding rate arbitrage strategy evaluation
-            strategy_evaluations = matrix.get_evaluations_by_evaluator(
+            # Look for the funding rate arbitrage RealTime evaluation
+            realtime_evaluations = matrix.get_evaluations_by_evaluator(
                 matrix_id, 
                 self.exchange_manager.exchange_name,
-                evaluators_enums.EvaluatorMatrixTypes.STRATEGIES.value,
+                evaluators_enums.EvaluatorMatrixTypes.REAL_TIME.value,
                 cryptocurrency, 
                 symbol, 
                 time_frame,
                 allowed_values=[commons_constants.START_PENDING_EVAL_NOTE]
             )
             
-            # Find our specific strategy evaluator
-            strategy_eval = None
-            for evaluator_name, evaluation in strategy_evaluations.items():
-                if self.trading_mode.STRATEGY_EVALUATOR_CLASS_NAME in evaluator_name:
-                    strategy_eval = evaluation
+            # Find our specific RealTime evaluator
+            realtime_eval = None
+            for evaluator_name, evaluation in realtime_evaluations.items():
+                if self.trading_mode.REALTIME_EVALUATOR_CLASS_NAME in evaluator_name:
+                    realtime_eval = evaluation
                     break
             
-            if strategy_eval is not None and strategy_eval != commons_constants.START_PENDING_EVAL_NOTE:
-                self.logger.debug(f"Got strategy evaluation for {symbol}: {strategy_eval}")
-                return float(strategy_eval)
+            if realtime_eval is not None and realtime_eval != commons_constants.START_PENDING_EVAL_NOTE:
+                self.logger.debug(f"Got RealTime evaluation for {symbol}: {realtime_eval}")
+                return float(realtime_eval)
             
             return None
             
         except Exception as e:
-            self.logger.debug(f"Could not get strategy evaluation for {symbol}: {e}")
+            self.logger.debug(f"Could not get RealTime evaluation for {symbol}: {e}")
+            return None
+
+    async def _get_evaluator_strategy_interface(self, matrix_id: str, cryptocurrency: str, symbol: str):
+        """Get strategy interface directly from the RealTime evaluator instance"""
+        try:
+            import octobot_evaluators.matrix as matrix
+            import octobot_evaluators.enums as evaluators_enums
+            
+            # Try to get the evaluator instance directly to access its strategy interface
+            evaluator_instances = matrix.get_evaluator_instances_by_type(
+                matrix_id,
+                self.exchange_manager.exchange_name,
+                evaluators_enums.EvaluatorMatrixTypes.REAL_TIME.value
+            )
+            
+            for evaluator_instance in evaluator_instances:
+                if hasattr(evaluator_instance, '__class__') and evaluator_instance.__class__.__name__ == self.trading_mode.REALTIME_EVALUATOR_CLASS_NAME:
+                    if hasattr(evaluator_instance, 'get_strategy_interface'):
+                        return evaluator_instance.get_strategy_interface()
+            
+            return None
+            
+        except Exception as e:
+            self.logger.debug(f"Could not get strategy interface from evaluator: {e}")
             return None
 
     async def _should_create_arbitrage_position(self, symbol: str, evaluation: float) -> bool:
