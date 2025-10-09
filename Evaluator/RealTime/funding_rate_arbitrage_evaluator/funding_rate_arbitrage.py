@@ -29,16 +29,8 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
     Funding Rate Arbitrage Evaluator
 
     This evaluator monitors funding rates across different exchanges for the same symbol
-    to identify arbitrage opportunities and generate trading signals. It combines both
-    opportunity detection and strategic decision making in a single component.
+    to identify arbitrage opportunities and generate trading signals.
 
-    Features:
-    - Cross-exchange funding rate monitoring
-    - Real-time arbitrage opportunity detection
-    - Strategic signal generation for trading modes
-    - Market-neutral position recommendations
-    - Risk-aware position sizing suggestions
-    
     Strategy:
     - Long on exchange with negative funding rate (receive funding)
     - Short on exchange with positive funding rate (pay less or receive funding)  
@@ -51,13 +43,6 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
     MAX_EXCHANGES_KEY = "max_exchanges_to_compare"
     EVALUATION_INTERVAL_KEY = "evaluation_interval_minutes"
     MIN_LIQUIDITY_KEY = "min_liquidity_threshold"
-    
-    # Strategy configuration constants
-    POSITION_SIZE_KEY = "position_size_percent"
-    MAX_EXPOSURE_KEY = "max_total_exposure_percent"
-    SIGNAL_TIMEOUT_KEY = "signal_timeout_seconds"
-    ENABLE_LONG_SIGNALS_KEY = "enable_long_signals"
-    ENABLE_SHORT_SIGNALS_KEY = "enable_short_signals"
     LEVERAGE_KEY = "leverage"
     MAX_LEVERAGE_KEY = "max_leverage"
     AUTO_LEVERAGE_KEY = "auto_adjust_leverage"
@@ -68,13 +53,6 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
     DEFAULT_MAX_EXCHANGES = 5
     DEFAULT_EVALUATION_INTERVAL = 1  # minutes
     DEFAULT_MIN_LIQUIDITY = 100000  # USD
-    
-    # Strategy defaults
-    DEFAULT_POSITION_SIZE = 5.0  # 5% of portfolio
-    DEFAULT_MAX_EXPOSURE = 20.0  # 20% total exposure
-    DEFAULT_SIGNAL_TIMEOUT = 300  # 5 minutes
-    DEFAULT_ENABLE_LONG = True
-    DEFAULT_ENABLE_SHORT = True
     DEFAULT_LEVERAGE = 1.0  # 1x leverage (no leverage)
     DEFAULT_MAX_LEVERAGE = 10.0  # Maximum 10x leverage
     DEFAULT_AUTO_LEVERAGE = False  # Don't auto-adjust by default
@@ -83,24 +61,16 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
     MIN_EVALUATION_CHANGE = 0.1  # 10% change threshold for notifications
     CONFIDENCE_RATE_WEIGHT = 0.7
     CONFIDENCE_ABSOLUTE_WEIGHT = 0.3
-    OPPORTUNITY_BONUS_MULTIPLIER = 0.1
 
     def __init__(self, tentacles_setup_config):
         super().__init__(tentacles_setup_config)
 
-        # Configuration parameters (will be set by user inputs)
+        # Configuration parameters
         self.rate_difference_threshold: float = self.DEFAULT_RATE_THRESHOLD
         self.min_rate_absolute: float = self.DEFAULT_MIN_RATE_ABSOLUTE
         self.max_exchanges: int = self.DEFAULT_MAX_EXCHANGES
         self.evaluation_interval: int = self.DEFAULT_EVALUATION_INTERVAL
         self.min_liquidity_threshold: float = self.DEFAULT_MIN_LIQUIDITY
-        
-        # Strategy configuration parameters
-        self.position_size_percent: float = self.DEFAULT_POSITION_SIZE
-        self.max_total_exposure_percent: float = self.DEFAULT_MAX_EXPOSURE
-        self.signal_timeout_seconds: int = self.DEFAULT_SIGNAL_TIMEOUT
-        self.enable_long_signals: bool = self.DEFAULT_ENABLE_LONG
-        self.enable_short_signals: bool = self.DEFAULT_ENABLE_SHORT
         self.leverage: float = self.DEFAULT_LEVERAGE
         self.max_leverage: float = self.DEFAULT_MAX_LEVERAGE
         self.auto_adjust_leverage: bool = self.DEFAULT_AUTO_LEVERAGE
@@ -110,13 +80,6 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
         self.last_evaluation_time: Dict[str, float] = defaultdict(float)
         self.current_opportunities: Dict[str, List[Dict]] = {}
         self.last_notification_eval: float = 0
-        self.active_signals: Dict[str, Dict[str, Any]] = {}  # Track active trading signals
-        
-        # Advanced position and risk management
-        self.current_positions: Dict[str, Dict[str, Any]] = {}  # Track open positions
-        self.total_exposure: float = 0.0  # Current total exposure percentage
-        self.risk_metrics: Dict[str, float] = {}  # Risk tracking metrics
-        self.performance_history: List[Dict[str, Any]] = []  # Performance tracking
 
     def init_user_inputs(self, inputs: dict) -> None:
         """
@@ -175,7 +138,7 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
         self.evaluation_interval = self.UI.user_input(
             self.EVALUATION_INTERVAL_KEY,
             commons_enums.UserInputTypes.INT,
-            5,
+            1,
             inputs,
             min_val=1,
             max_val=60,
@@ -191,53 +154,6 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
             min_val=1000,
             max_val=10000000,
             title="Minimum liquidity (USD): Minimum liquidity required for arbitrage opportunity",
-        )
-
-        # Strategy configuration
-        self.position_size_percent = self.UI.user_input(
-            self.POSITION_SIZE_KEY,
-            commons_enums.UserInputTypes.FLOAT,
-            5.0,
-            inputs,
-            min_val=0.1,
-            max_val=50.0,
-            title="Position size (%): Percentage of portfolio to risk per arbitrage opportunity",
-        )
-
-        self.max_total_exposure_percent = self.UI.user_input(
-            self.MAX_EXPOSURE_KEY,
-            commons_enums.UserInputTypes.FLOAT,
-            20.0,
-            inputs,
-            min_val=1.0,
-            max_val=100.0,
-            title="Maximum exposure (%): Maximum total portfolio exposure across all arbitrage positions",
-        )
-
-        self.signal_timeout_seconds = self.UI.user_input(
-            self.SIGNAL_TIMEOUT_KEY,
-            commons_enums.UserInputTypes.INT,
-            300,
-            inputs,
-            min_val=30,
-            max_val=3600,
-            title="Signal timeout (seconds): How long to consider an arbitrage signal valid",
-        )
-
-        self.enable_long_signals = self.UI.user_input(
-            self.ENABLE_LONG_SIGNALS_KEY,
-            commons_enums.UserInputTypes.BOOLEAN,
-            True,
-            inputs,
-            title="Enable long signals: Generate buy signals for arbitrage opportunities",
-        )
-
-        self.enable_short_signals = self.UI.user_input(
-            self.ENABLE_SHORT_SIGNALS_KEY,
-            commons_enums.UserInputTypes.BOOLEAN,
-            True,
-            inputs,
-            title="Enable short signals: Generate sell signals for arbitrage opportunities",
         )
 
         # Leverage configuration
@@ -351,8 +267,7 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
     async def _update_funding_rates(self, exchange: str, exchange_id: str, symbol: str):
         """Update funding rates from local cache or exchange API if needed"""
         try:
-            # In a real implementation, this could fetch from exchange API
-            # For now, we rely on the funding channel callback to update rates
+            # Rely on the funding channel callback to update rates
             current_rate = self.funding_rates.get(exchange, {}).get(symbol)
             if current_rate is not None:
                 self.logger.debug(
@@ -497,12 +412,12 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
         # Base score from rate difference
         base_score = min(rate_diff / (self.rate_difference_threshold * 3), 1.0)
 
-        # Apply confidence and opportunity count multipliers
+        # Apply confidence multiplier
         final_score = base_score * confidence
+
+        # Bonus for multiple opportunities
         if len(opportunities) > 1:
-            final_score *= (
-                1 + (len(opportunities) - 1) * self.OPPORTUNITY_BONUS_MULTIPLIER
-            )
+            final_score *= 1 + (len(opportunities) - 1) * 0.1
 
         final_score = min(final_score, 1.0)
 
@@ -516,161 +431,20 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
                 cryptocurrency, symbol, self.time_frame, eval_time=eval_time
             )
             self._log_opportunity(symbol, best_opportunity, final_score)
-            
-            # Generate trading signals for strong opportunities
-            if final_score >= 0.5:  # Only generate signals for strong opportunities
-                self._generate_trading_signals(symbol, opportunities, eval_time)
 
     def _log_opportunity(self, symbol: str, opportunity: Dict[str, Any], score: float):
         """Log arbitrage opportunity details"""
+        leverage = self.get_target_leverage(symbol, opportunity)
         self.logger.info(
             f"Funding arbitrage for {symbol}: "
             f"Long {opportunity['long_exchange']} ({opportunity['long_rate']:.6f}), "
             f"Short {opportunity['short_exchange']} ({opportunity['short_rate']:.6f}), "
-            f"Spread: {opportunity['rate_difference']:.6f}, Score: {score:.3f}"
+            f"Spread: {opportunity['rate_difference']:.6f}, Score: {score:.3f}, "
+            f"Leverage: {leverage:.2f}x"
         )
 
-    def _generate_trading_signals(self, symbol: str, opportunities: List[Dict[str, Any]], eval_time: float):
-        """Generate trading signals based on arbitrage opportunities"""
-        if not opportunities:
-            return
-
-        best_opportunity = opportunities[0]
-        
-        # Calculate dynamic leverage based on opportunity strength
-        target_leverage = self._calculate_dynamic_leverage(symbol, best_opportunity)
-        
-        # Create signal data
-        signal_data = {
-            "symbol": symbol,
-            "timestamp": eval_time,
-            "opportunity": best_opportunity,
-            "suggested_position_size": self.position_size_percent / 100,
-            "target_leverage": target_leverage,
-            "confidence": best_opportunity["confidence"],
-            "timeout": eval_time + self.signal_timeout_seconds
-        }
-        
-        # Generate long signal if enabled
-        if self.enable_long_signals:
-            long_signal_key = f"{symbol}_long_{best_opportunity['long_exchange']}"
-            self.active_signals[long_signal_key] = {
-                **signal_data,
-                "signal_type": "long",
-                "exchange": best_opportunity['long_exchange'],
-                "target_rate": best_opportunity['long_rate']
-            }
-            
-        # Generate short signal if enabled  
-        if self.enable_short_signals:
-            short_signal_key = f"{symbol}_short_{best_opportunity['short_exchange']}"
-            self.active_signals[short_signal_key] = {
-                **signal_data,
-                "signal_type": "short", 
-                "exchange": best_opportunity['short_exchange'],
-                "target_rate": best_opportunity['short_rate']
-            }
-        
-        self.logger.debug(f"Generated trading signals for {symbol} arbitrage opportunity (leverage: {target_leverage:.2f}x)")
-
-    def _cleanup_expired_signals(self, current_time: float):
-        """Remove expired trading signals"""
-        expired_signals = [
-            signal_key for signal_key, signal_data in self.active_signals.items()
-            if current_time > signal_data.get("timeout", 0)
-        ]
-        
-        for signal_key in expired_signals:
-            del self.active_signals[signal_key]
-            
-        if expired_signals:
-            self.logger.debug(f"Cleaned up {len(expired_signals)} expired trading signals")
-
-    def get_active_trading_signals(self) -> Dict[str, Dict[str, Any]]:
-        """Get currently active trading signals for external access"""
-        current_time = time.time()
-        self._cleanup_expired_signals(current_time)
-        return self.active_signals.copy()
-
-    def get_position_manager(self) -> Dict[str, Any]:
-        """Get position management interface for trading mode integration"""
-        return {
-            "current_positions": self.current_positions.copy(),
-            "total_exposure": self.total_exposure,
-            "max_exposure": self.max_total_exposure_percent,
-            "position_size": self.position_size_percent,
-            "can_open_position": self._can_open_new_position,
-            "update_position": self._update_position_tracking,
-            "close_position": self._close_position_tracking,
-            "get_target_leverage": self._get_target_leverage,
-            "calculate_leverage": self._calculate_dynamic_leverage,
-        }
-
-    def _can_open_new_position(self, symbol: str, position_size_percent: float) -> bool:
-        """Check if a new position can be opened based on exposure limits"""
-        potential_exposure = self.total_exposure + position_size_percent
-        return potential_exposure <= self.max_total_exposure_percent
-
-    def _update_position_tracking(self, symbol: str, exchange: str, side: str, size: float, price: float):
-        """Update position tracking for risk management"""
-        position_key = f"{symbol}_{exchange}_{side}"
-        
-        self.current_positions[position_key] = {
-            "symbol": symbol,
-            "exchange": exchange,
-            "side": side,
-            "size": size,
-            "entry_price": price,
-            "timestamp": time.time(),
-            "exposure_percent": (size * price / 100) * self.position_size_percent  # Simplified calculation
-        }
-        
-        # Update total exposure
-        self.total_exposure = sum(
-            pos.get("exposure_percent", 0) for pos in self.current_positions.values()
-        )
-        
-        self.logger.debug(f"Updated position tracking: {position_key}, Total exposure: {self.total_exposure:.2f}%")
-
-    def _close_position_tracking(self, symbol: str, exchange: str, side: str, close_price: float):
-        """Close position tracking and update performance metrics"""
-        position_key = f"{symbol}_{exchange}_{side}"
-        
-        if position_key in self.current_positions:
-            position = self.current_positions.pop(position_key)
-            
-            # Calculate P&L (simplified)
-            entry_price = position["entry_price"]
-            size = position["size"]
-            pnl = (close_price - entry_price) * size if side == "long" else (entry_price - close_price) * size
-            
-            # Record performance
-            self.performance_history.append({
-                "timestamp": time.time(),
-                "symbol": symbol,
-                "exchange": exchange,
-                "side": side,
-                "entry_price": entry_price,
-                "close_price": close_price,
-                "size": size,
-                "pnl": pnl,
-                "duration": time.time() - position["timestamp"]
-            })
-            
-            # Update total exposure
-            self.total_exposure = sum(
-                pos.get("exposure_percent", 0) for pos in self.current_positions.values()
-            )
-            
-            self.logger.info(f"Closed position {position_key}: P&L {pnl:.6f}, Total exposure: {self.total_exposure:.2f}%")
-
-    def _get_target_leverage(self, symbol: str) -> float:
-        """Get the target leverage for a specific symbol"""
-        symbol_data = self.current_positions.get(f"{symbol}_leverage_info", {})
-        return symbol_data.get("target_leverage", self.leverage)
-
-    def _calculate_dynamic_leverage(self, symbol: str, opportunity: Optional[Dict[str, Any]] = None) -> float:
-        """Calculate dynamic leverage based on opportunity strength and configuration"""
+    def get_target_leverage(self, symbol: str, opportunity: Optional[Dict[str, Any]] = None) -> float:
+        """Get the target leverage for a specific symbol and opportunity"""
         base_leverage = self.leverage
 
         if not self.auto_adjust_leverage or not opportunity:
@@ -681,6 +455,7 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
         confidence = opportunity.get("confidence", 0.5)
 
         # Calculate leverage multiplier based on opportunity strength
+        # Higher rate difference and confidence increase leverage
         strength_factor = min(rate_difference * 50, 2.0)  # Rate diff of 2% = 2x multiplier
         confidence_factor = confidence
 
@@ -692,44 +467,7 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
         effective_leverage = min(effective_leverage, self.max_leverage)
         effective_leverage = max(effective_leverage, 1.0)  # Never go below 1x
 
-        # Store leverage info for later reference
-        self._store_leverage_info(symbol, effective_leverage)
-
         return effective_leverage
-
-    def _store_leverage_info(self, symbol: str, leverage: float):
-        """Store leverage information for position tracking"""
-        leverage_key = f"{symbol}_leverage_info"
-        
-        self.current_positions[leverage_key] = {
-            "target_leverage": leverage,
-            "timestamp": time.time(),
-            "symbol": symbol,
-        }
-        
-        self.logger.debug(f"Set target leverage for {symbol}: {leverage:.2f}x")
-
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """Get performance metrics for monitoring"""
-        if not self.performance_history:
-            return {"total_trades": 0, "total_pnl": 0, "win_rate": 0, "avg_duration": 0}
-        
-        total_trades = len(self.performance_history)
-        total_pnl = sum(trade["pnl"] for trade in self.performance_history)
-        winning_trades = len([trade for trade in self.performance_history if trade["pnl"] > 0])
-        win_rate = (winning_trades / total_trades) * 100 if total_trades > 0 else 0
-        avg_duration = sum(trade["duration"] for trade in self.performance_history) / total_trades
-        
-        return {
-            "total_trades": total_trades,
-            "total_pnl": total_pnl,
-            "win_rate": win_rate,
-            "avg_duration": avg_duration,
-            "winning_trades": winning_trades,
-            "losing_trades": total_trades - winning_trades,
-            "current_positions": len(self.current_positions),
-            "total_exposure": self.total_exposure
-        }
 
     def _get_available_exchange_ids(self) -> List[str]:
         """Get available exchange IDs using multiple fallback strategies"""
@@ -864,80 +602,3 @@ class FundingRateArbitrageEvaluator(evaluators.RealTimeEvaluator):
         """Stop the evaluator"""
         self.logger.info("Stopping Funding Rate Arbitrage Evaluator")
         await super().stop()
-
-    def get_current_opportunities(self) -> Dict[str, List[Dict[str, Any]]]:
-        """Get current arbitrage opportunities for external access"""
-        return self.current_opportunities.copy()
-
-    def get_strategy_interface(self) -> Dict[str, Any]:
-        """
-        Comprehensive strategy interface for trading mode integration
-        
-        This method provides all the functionality that would typically be
-        handled by a separate StrategyEvaluator, making this RealTime evaluator
-        fully self-contained for funding rate arbitrage operations.
-        """
-        current_time = time.time()
-        self._cleanup_expired_signals(current_time)
-        
-        return {
-            # Core strategy data
-            "signals": self.get_active_trading_signals(),
-            "opportunities": self.get_current_opportunities(),
-            "position_manager": self.get_position_manager(),
-            "performance": self.get_performance_metrics(),
-            
-            # Configuration access
-            "config": {
-                "position_size_percent": self.position_size_percent,
-                "max_exposure_percent": self.max_total_exposure_percent,
-                "signal_timeout": self.signal_timeout_seconds,
-                "rate_threshold": self.rate_difference_threshold,
-                "min_rate_absolute": self.min_rate_absolute,
-                "enable_long": self.enable_long_signals,
-                "enable_short": self.enable_short_signals,
-                "leverage": self.leverage,
-                "max_leverage": self.max_leverage,
-                "auto_leverage": self.auto_adjust_leverage,
-            },
-            
-            # Strategy state
-            "state": {
-                "total_exposure": self.total_exposure,
-                "active_positions_count": len(self.current_positions),
-                "active_signals_count": len(self.active_signals),
-                "opportunities_count": sum(len(ops) for ops in self.current_opportunities.values()),
-                "last_evaluation": max(self.last_evaluation_time.values()) if self.last_evaluation_time else 0,
-            },
-            
-            # Helper methods for trading modes
-            "methods": {
-                "can_trade": lambda symbol, size: self._can_open_new_position(symbol, size),
-                "get_position_size": lambda: self.position_size_percent / 100,
-                "get_best_opportunity": lambda symbol: self.current_opportunities.get(symbol, [{}])[0] if symbol in self.current_opportunities else None,
-                "validate_signal": lambda signal: current_time <= signal.get("timeout", 0),
-                "get_target_leverage": lambda symbol: self._get_target_leverage(symbol),
-                "calculate_leverage": lambda symbol, opp: self._calculate_dynamic_leverage(symbol, opp),
-            }
-        }
-
-    def get_evaluation_summary(self) -> str:
-        """Get a summary of current evaluation state"""
-        if not self.current_opportunities:
-            return "No arbitrage opportunities detected"
-
-        summaries = []
-        active_signals = self.get_active_trading_signals()
-        
-        for symbol, opportunities in self.current_opportunities.items():
-            if opportunities:
-                best = opportunities[0]
-                signal_count = len([s for s in active_signals.keys() if symbol in s])
-                signal_suffix = f" [{signal_count} signals]" if signal_count > 0 else ""
-                
-                summaries.append(
-                    f"{symbol}: {best['rate_difference']:.4f}% spread "
-                    f"({best['long_exchange']} vs {best['short_exchange']}){signal_suffix}"
-                )
-
-        return "; ".join(summaries) if summaries else "No opportunities"

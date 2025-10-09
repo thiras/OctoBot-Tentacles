@@ -42,7 +42,7 @@ The evaluator:
 - **Description:** Maximum number of exchanges to compare for arbitrage opportunities. Limits computation while focusing on the best opportunities.
 
 ### Evaluation Interval (minutes)
-- **Default:** 5 minutes
+- **Default:** 1 minute
 - **Range:** 1 - 60 minutes
 - **Description:** How often to check for arbitrage opportunities. More frequent checks provide faster signals but increase computational load.
 

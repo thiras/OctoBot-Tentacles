@@ -4,5 +4,8 @@
     "max_exchanges_to_compare": 5,
     "evaluation_interval_minutes": 1,
     "min_liquidity_threshold": 100000,
-    "time_frame": "1m"
+    "time_frame": "1m",
+    "leverage": 1.0,
+    "max_leverage": 10.0,
+    "auto_adjust_leverage": false
 }
